@@ -15,6 +15,8 @@ export default function HomePage() {
   const session = useSession();
   const router = useRouter();
 
+  const [foldername, setFoldername] = useState("");
+
   const [files, setFiles] = useState<
     {
       name: string;
@@ -111,8 +113,8 @@ export default function HomePage() {
       const newBlob = (await response.json()) as PutBlobResult;
     },
     {
-      onSuccess: () => {
-        queryClient.invalidateQueries("list");
+      onSuccess: async () => {
+        await queryClient?.invalidateQueries("list");
       },
     },
   );
@@ -181,8 +183,8 @@ export default function HomePage() {
             </>
           )}
         </div>
-        <div>
-          <label>
+        <div className={"flex flex-row items-center justify-start gap-2"}>
+          <label className={"rounded bg-red-50 p-2 text-gray-900"}>
             Upload file
             <input
               className={"hidden"}
@@ -197,6 +199,27 @@ export default function HomePage() {
               required
             />
           </label>
+          <div
+            className={"cursor-pointer rounded bg-red-50 p-2 text-gray-900"}
+            onClick={() => {
+              if (!foldername) return;
+              setFolders((prev) => {
+                return [...prev, { name: slugify(foldername) }];
+              });
+              setFoldername("");
+            }}
+          >
+            Add folder
+          </div>
+          <input
+            className={
+              "box-border h-full  rounded border-0 p-2 text-gray-900 outline-0"
+            }
+            name={"foldername"}
+            value={foldername}
+            placeholder={"Foldername"}
+            onChange={(event) => setFoldername(event.target.value)}
+          />
         </div>
       </div>
     </main>
