@@ -1,6 +1,7 @@
 import "@diskastore/styles/globals.css";
 
 import { Inter } from "next/font/google";
+import MainWrapper from "@diskastore/MainWrapper";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -10,7 +11,7 @@ const inter = Inter({
 export const metadata = {
   title: "Disk From Vitalii",
   description: "Google Disk analogue ",
-  icons: [{ rel: "icon", url: "/favicon.ico" }],
+  icons: [],
 };
 
 export default function RootLayout({
@@ -20,7 +21,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`font-sans ${inter.variable}`}>{children}</body>
+      <body className={`font-sans ${inter.variable}`}>
+        <MainWrapper>{children}</MainWrapper>
+      </body>
     </html>
   );
 }
