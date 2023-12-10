@@ -4,12 +4,31 @@ import { type ListBlobResultBlob, type PutBlobResult } from "@vercel/blob";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import slugify from "slugify";
-import { useQuery } from "react-query";
+import { useMutation, useQuery, useQueryClient } from "react-query";
+import useDownloader from "react-use-downloader";
+import FileIcon from "./file-icon.svg";
 
 export default function HomePage() {
+  const queryClient = useQueryClient();
   const pathname = usePathname();
   const session = useSession();
   const router = useRouter();
+
+  const [files, setFiles] = useState<
+    {
+      name: string;
+      url: string;
+    }[]
+  >([]);
+
+  const [folders, setFolders] = useState<
+    {
+      name: string;
+    }[]
+  >([]);
+
+  const { size, elapsed, percentage, download, cancel, isInProgress } =
+    useDownloader();
 
   useEffect(() => {
     if (session.status === "unauthenticated") {
@@ -19,22 +38,80 @@ export default function HomePage() {
 
   const onBack = useCallback(() => {
     const slug = pathname.split("/");
-    const params = slug.slice(2, slug.length);
+    const params = slug.slice(3, slug.length);
     if (!params || params.length === 0) return;
     router.push(slug.slice(0, slug.length - 1).join("/"));
   }, [pathname, session]);
 
   const inputFileRef = useRef<HTMLInputElement>(null);
-  const [blob, setBlob] = useState<PutBlobResult | null>(null);
 
   const {
     isLoading,
     error,
     data: list,
-  } = useQuery("list", () =>
-    fetch("/api/list").then(
-      (res) => res.json() as Promise<ListBlobResultBlob[]>,
-    ),
+  } = useQuery(
+    "list",
+    () =>
+      fetch("/api/list").then(
+        (res) => res.json() as Promise<ListBlobResultBlob[]>,
+      ),
+    {
+      onSuccess: (data) => {
+        const slug = pathname.split("/");
+        const params = slug.slice(2, slug.length);
+        const prefix = params.join("/") + "/";
+        const filtered = data.filter((el) => el.pathname.includes(prefix));
+
+        const files = data
+          .filter((el) => !el.pathname.split(prefix).includes("/"))
+          .map((el) => {
+            const parts = el.pathname.split("/");
+            const name = parts[parts.length - 1] || "";
+            return {
+              name,
+              url: el.url,
+            };
+          });
+        setFiles(files);
+        const folders = data
+          .filter((el) => el.pathname.split(prefix).includes("/"))
+          .map((el) => {
+            const name = el.pathname.split(prefix)?.[1]?.split("/")?.[0] || "";
+            return {
+              name,
+            };
+          });
+        setFolders(folders);
+      },
+    },
+  );
+
+  const addMutation = useMutation(
+    async (event) => {
+      if (!inputFileRef.current?.files) {
+        throw new Error("No file selected");
+      }
+
+      const file = inputFileRef.current.files[0];
+      let name = slugify(file?.name || "");
+      const slug = pathname.split("/");
+      const params = slug.slice(3, slug.length);
+      if (params.length > 0) {
+        name = `${params.join("/")}/${slugify(file?.name || "")}`;
+      }
+
+      const response = await fetch(`/api/upload?filename=${name}`, {
+        method: "POST",
+        body: file,
+      });
+
+      const newBlob = (await response.json()) as PutBlobResult;
+    },
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries("list");
+      },
+    },
   );
 
   return (
@@ -61,19 +138,39 @@ export default function HomePage() {
             Logout
           </button>
         </div>
+        {isLoading ? null : (
+          <div className={"flex flex-col gap-4"}>
+            {files?.map?.((el) => {
+              return (
+                <div
+                  className={
+                    "flex w-full cursor-pointer flex-row items-center gap-2 border-b"
+                  }
+                  key={el.name}
+                  onClick={() => download(el.url, el.name)}
+                >
+                  <FileIcon className={"h-4 w-4 object-cover"} />
+                  {el.name}
+                </div>
+              );
+            })}
+          </div>
+        )}
         {isLoading ? (
           <div>Loading</div>
         ) : (
-          <div>
-            {list?.map?.((el) => {
-              const parts = el.pathname.split("/");
-              const name = parts[parts.length - 1];
+          <div className={"flex flex-col gap-4"}>
+            {files?.map?.((el) => {
               return (
                 <div
-                  className={"w-full cursor-pointer border-b-2"}
-                  key={el.pathname}
+                  className={
+                    "flex w-full cursor-pointer flex-row items-center gap-2 border-b"
+                  }
+                  key={el.name}
+                  onClick={() => download(el.url, el.name)}
                 >
-                  {name}
+                  <FileIcon className={"h-4 w-4 object-cover"} />
+                  {el.name}
                 </div>
               );
             })}
@@ -84,33 +181,12 @@ export default function HomePage() {
             onSubmit={async (event) => {
               event.preventDefault();
 
-              if (!inputFileRef.current?.files) {
-                throw new Error("No file selected");
-              }
-
-              const file = inputFileRef.current.files[0];
-
-              const response = await fetch(
-                `/api/upload?filename=${slugify(file?.name || "")}`,
-                {
-                  method: "POST",
-                  body: file,
-                },
-              );
-
-              const newBlob = (await response.json()) as PutBlobResult;
-
-              setBlob(newBlob);
+              addMutation.mutate();
             }}
           >
             <input name="file" ref={inputFileRef} type="file" required />
             <button type="submit">Upload</button>
           </form>
-          {blob && (
-            <div>
-              Blob url: <a href={blob.url}>{blob.url}</a>
-            </div>
-          )}
         </div>
       </div>
     </main>
