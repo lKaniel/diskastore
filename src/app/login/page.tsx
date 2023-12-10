@@ -8,7 +8,7 @@ const Page = () => {
   const router = useRouter();
 
   useEffect(() => {
-    if (session.status !== "unauthenticated") {
+    if (session.status === "authenticated") {
       router.push("/");
     }
   }, []);
