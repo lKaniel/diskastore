@@ -8,9 +8,12 @@ export async function POST(request: Request): Promise<NextResponse> {
   const filename = searchParams.get("filename");
   const session = await getServerSession(authOptions);
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   if (!session) return NextResponse.error().json();
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   if (!filename) return NextResponse.error().json();
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   if (!request.body) return NextResponse.error().json();
 
   const blob = await put(`${session?.user?.email}/${filename}`, request.body, {

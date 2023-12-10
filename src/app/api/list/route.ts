@@ -10,9 +10,7 @@ export async function GET(request: Request) {
   if (!session?.user?.email) return NextResponse.error().json();
   let { blobs } = await list();
 
-  blobs = blobs.filter((value) =>
-    value.pathname.includes(session?.user?.email!),
-  );
+  blobs = blobs.filter((value) => value.pathname.includes(session.user.email!));
 
   return NextResponse.json(blobs);
 }

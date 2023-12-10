@@ -14,7 +14,7 @@ export default function HomePage() {
     if (session.status !== "authenticated") {
       router.push("/login");
     } else {
-      router.push(`/files/${slugify(session.data?.user?.email || "")}`);
+      router.push(`/files/${slugify(session.data?.user?.email ?? "")}`);
     }
   }, [session]);
 
