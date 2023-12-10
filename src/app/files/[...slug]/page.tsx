@@ -7,6 +7,7 @@ import slugify from "slugify";
 import { useMutation, useQuery, useQueryClient } from "react-query";
 import useDownloader from "react-use-downloader";
 import FileIcon from "./file-icon.svg";
+import FolderIcon from "./folder-icon.svg";
 
 export default function HomePage() {
   const queryClient = useQueryClient();
@@ -17,6 +18,7 @@ export default function HomePage() {
   const [files, setFiles] = useState<
     {
       name: string;
+      key: string;
       url: string;
     }[]
   >([]);
@@ -62,19 +64,20 @@ export default function HomePage() {
         const prefix = params.join("/") + "/";
         const filtered = data.filter((el) => el.pathname.includes(prefix));
 
-        const files = data
-          .filter((el) => !el.pathname.split(prefix).includes("/"))
+        const files = filtered
+          .filter((el) => !el.pathname.split(prefix)?.[1]?.includes("/"))
           .map((el) => {
             const parts = el.pathname.split("/");
             const name = parts[parts.length - 1] || "";
             return {
               name,
               url: el.url,
+              key: el.pathname,
             };
           });
         setFiles(files);
-        const folders = data
-          .filter((el) => el.pathname.split(prefix).includes("/"))
+        const folders = filtered
+          .filter((el) => el.pathname.split(prefix)?.[1]?.includes("/"))
           .map((el) => {
             const name = el.pathname.split(prefix)?.[1]?.split("/")?.[0] || "";
             return {
@@ -129,7 +132,7 @@ export default function HomePage() {
               "flex h-8 w-full items-center rounded bg-red-50 px-2 font-black text-gray-900"
             }
           >
-            {pathname}
+            {"/" + pathname.split("/").splice(3, pathname.length).join("/")}
           </div>
           <button
             className={"rounded bg-red-50 px-2 text-gray-900"}
@@ -138,55 +141,62 @@ export default function HomePage() {
             Logout
           </button>
         </div>
-        {isLoading ? null : (
-          <div className={"flex flex-col gap-4"}>
-            {files?.map?.((el) => {
-              return (
-                <div
-                  className={
-                    "flex w-full cursor-pointer flex-row items-center gap-2 border-b"
-                  }
-                  key={el.name}
-                  onClick={() => download(el.url, el.name)}
-                >
-                  <FileIcon className={"h-4 w-4 object-cover"} />
-                  {el.name}
-                </div>
-              );
-            })}
-          </div>
-        )}
-        {isLoading ? (
-          <div>Loading</div>
-        ) : (
-          <div className={"flex flex-col gap-4"}>
-            {files?.map?.((el) => {
-              return (
-                <div
-                  className={
-                    "flex w-full cursor-pointer flex-row items-center gap-2 border-b"
-                  }
-                  key={el.name}
-                  onClick={() => download(el.url, el.name)}
-                >
-                  <FileIcon className={"h-4 w-4 object-cover"} />
-                  {el.name}
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <div className={"flex flex-col gap-4"}>
+          {isLoading ? null : (
+            <>
+              {folders?.map?.((el) => {
+                return (
+                  <div
+                    className={
+                      "flex w-full cursor-pointer flex-row items-center gap-2 border-b"
+                    }
+                    key={el.name}
+                    onClick={() => router.push(pathname + `/${el.name}`)}
+                  >
+                    <FolderIcon className={"h-4 w-4 object-cover"} />
+                    {el.name}
+                  </div>
+                );
+              })}
+            </>
+          )}
+          {isLoading ? (
+            <div>Loading</div>
+          ) : (
+            <>
+              {files?.map?.((el) => {
+                return (
+                  <div
+                    className={
+                      "flex w-full cursor-pointer flex-row items-center gap-2 border-b"
+                    }
+                    key={el.key}
+                    onClick={() => download(el.url, el.name)}
+                  >
+                    <FileIcon className={"h-4 w-4 object-cover"} />
+                    {el.name}
+                  </div>
+                );
+              })}
+            </>
+          )}
+        </div>
         <div>
-          <form
-            onSubmit={async (event) => {
-              event.preventDefault();
+          <label>
+            Upload file
+            <input
+              className={"hidden"}
+              name="file"
+              ref={inputFileRef}
+              type="file"
+              onChange={async (event) => {
+                event.preventDefault();
 
-              addMutation.mutate();
-            }}
-          >
-            <input name="file" ref={inputFileRef} type="file" required />
-            <button type="submit">Upload</button>
-          </form>
+                addMutation.mutate();
+              }}
+              required
+            />
+          </label>
         </div>
       </div>
     </main>
