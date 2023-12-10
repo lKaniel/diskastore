@@ -8,6 +8,7 @@ import { useMutation, useQuery, useQueryClient } from "react-query";
 import useDownloader from "react-use-downloader";
 import FileIcon from "./file-icon.svg";
 import FolderIcon from "./folder-icon.svg";
+import DeleteIcon from "./delete-icon.svg";
 
 export default function HomePage() {
   const queryClient = useQueryClient();
@@ -70,7 +71,7 @@ export default function HomePage() {
           .filter((el) => !el.pathname.split(prefix)?.[1]?.includes("/"))
           .map((el) => {
             const parts = el.pathname.split("/");
-            const name = parts[parts.length - 1] || "";
+            const name = parts[parts.length - 1] ?? "";
             return {
               name,
               url: el.url,
@@ -81,7 +82,7 @@ export default function HomePage() {
         const folders = filtered
           .filter((el) => el.pathname.split(prefix)?.[1]?.includes("/"))
           .map((el) => {
-            const name = el.pathname.split(prefix)?.[1]?.split("/")?.[0] || "";
+            const name = el.pathname.split(prefix)?.[1]?.split("/")?.[0] ?? "";
             return {
               name,
             };
@@ -98,11 +99,11 @@ export default function HomePage() {
       }
 
       const file = inputFileRef.current.files[0];
-      let name = slugify(file?.name || "");
+      let name = slugify(file?.name ?? "");
       const slug = pathname.split("/");
       const params = slug.slice(3, slug.length);
       if (params.length > 0) {
-        name = `${params.join("/")}/${slugify(file?.name || "")}`;
+        name = `${params.join("/")}/${slugify(file?.name ?? "")}`;
       }
 
       const response = await fetch(`/api/upload?filename=${name}`, {
@@ -111,6 +112,19 @@ export default function HomePage() {
       });
 
       const newBlob = (await response.json()) as PutBlobResult;
+    },
+    {
+      onSuccess: async () => {
+        await queryClient?.invalidateQueries("list");
+      },
+    },
+  );
+
+  const deleteMutation = useMutation(
+    async (url: string) => {
+      const response = await fetch(`/api/delete?url=${url}`, {
+        method: "DELETE",
+      });
     },
     {
       onSuccess: async () => {
@@ -173,10 +187,16 @@ export default function HomePage() {
                       "flex w-full cursor-pointer flex-row items-center gap-2 border-b"
                     }
                     key={el.key}
-                    onClick={() => download(el.url, el.name)}
                   >
-                    <FileIcon className={"h-4 w-4 object-cover"} />
+                    <FileIcon
+                      className={"h-4 w-4 object-cover"}
+                      onClick={() => download(el.url, el.name)}
+                    />
                     {el.name}
+                    <DeleteIcon
+                      className={"h-4 w-4 object-cover"}
+                      onClick={() => deleteMutation.mutate(el.url)}
+                    />
                   </div>
                 );
               })}

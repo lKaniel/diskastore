@@ -1,21 +1,12 @@
-import { put } from "@vercel/blob";
-import { NextResponse } from "next/server";
-import { authOptions } from "@diskastore/server/auth";
-import { getServerSession } from "next-auth";
+import { del } from "@vercel/blob";
 
-export async function POST(request: Request): Promise<NextResponse> {
+// export const runtime = "edge";
+
+export async function DELETE(request: Request) {
   const { searchParams } = new URL(request.url);
-  const filename = searchParams.get("filename");
-  const session = await getServerSession(authOptions);
+  const urlToDelete = searchParams.get("url")!;
+  console.log(urlToDelete);
+  await del(urlToDelete);
 
-  if (!session) return NextResponse.error().json();
-
-  if (!filename) return NextResponse.error().json();
-  if (!request.body) return NextResponse.error().json();
-
-  const blob = await put(`${session?.user?.email}/${filename}`, request.body, {
-    access: "public",
-  });
-
-  return NextResponse.json(blob);
+  return new Response();
 }
