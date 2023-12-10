@@ -1,9 +1,10 @@
 "use client";
 import { usePathname, useRouter } from "next/navigation";
-import { type PutBlobResult } from "@vercel/blob";
+import { type ListBlobResultBlob, type PutBlobResult } from "@vercel/blob";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import slugify from "slugify";
+import { useQuery } from "react-query";
 
 export default function HomePage() {
   const pathname = usePathname();
@@ -25,6 +26,16 @@ export default function HomePage() {
 
   const inputFileRef = useRef<HTMLInputElement>(null);
   const [blob, setBlob] = useState<PutBlobResult | null>(null);
+
+  const {
+    isLoading,
+    error,
+    data: list,
+  } = useQuery("list", () =>
+    fetch("/api/list").then(
+      (res) => res.json() as Promise<ListBlobResultBlob[]>,
+    ),
+  );
 
   return (
     <main className="flex min-h-screen flex-col items-center bg-gradient-to-b from-[#2e026d] to-[#15162c] text-white">
@@ -50,6 +61,24 @@ export default function HomePage() {
             Logout
           </button>
         </div>
+        {isLoading ? (
+          <div>Loading</div>
+        ) : (
+          <div>
+            {list?.map?.((el) => {
+              const parts = el.pathname.split("/");
+              const name = parts[parts.length - 1];
+              return (
+                <div
+                  className={"w-full cursor-pointer border-b-2"}
+                  key={el.pathname}
+                >
+                  {name}
+                </div>
+              );
+            })}
+          </div>
+        )}
         <div>
           <form
             onSubmit={async (event) => {
@@ -68,8 +97,6 @@ export default function HomePage() {
                   body: file,
                 },
               );
-
-              console.log(response);
 
               const newBlob = (await response.json()) as PutBlobResult;
 

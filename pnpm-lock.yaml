@@ -32,6 +32,9 @@ dependencies:
   react-query:
     specifier: ^3.39.3
     version: 3.39.3(react-dom@18.2.0)(react@18.2.0)
+  react-use-downloader:
+    specifier: ^1.2.4
+    version: 1.2.4(react@18.2.0)
   slugify:
     specifier: ^1.6.6
     version: 1.6.6
@@ -2203,6 +2206,15 @@ packages:
       match-sorter: 6.3.1
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
+    dev: false
+
+  /react-use-downloader@1.2.4(react@18.2.0):
+    resolution: {integrity: sha512-ciPb5SSKaDymZoWdaHrNbJpa20riR0fgUni48cBTseoptAMG8SEATX33UCNPGwnpZ5BFybFdTCus37KLibj8oA==}
+    engines: {node: '>=8', npm: '>=5'}
+    peerDependencies:
+      react: ^17.0.2 || ^18
+    dependencies:
+      react: 18.2.0
     dev: false
 
   /react@18.2.0:
